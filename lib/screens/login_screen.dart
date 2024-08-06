@@ -1,13 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:myapp/screens/location_getter.dart';
 import 'package:myapp/widgets/login_textfield.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   LoginScreen({super.key});
 
-  final TextEditingController email_controller = TextEditingController();
-  final TextEditingController passwrd_controller = TextEditingController();
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController empid_controller = TextEditingController();
+
   final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
+
+  late Box employeeBox;
+
+  // Emp Id Validator
+  String? _validateEmployeeId(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Employee ID is required';
+    }
+    if (value.length != 5) {
+      return 'Employee ID must be exactly 5 digits long';
+    }
+    if (!RegExp(r'^\d{5}$').hasMatch(value)) {
+      return 'Employee ID must be a number';
+    }
+    return null;
+  }
+
+  //Save EmpId to Local Hive DB
+  void _saveEmpId(String id) {
+    employeeBox.put('EmployeeId', id);
+    print('inside save function : $id');
+  }
+
+  void initState() {
+    super.initState();
+    openHive();
+    employeeBox = Hive.box('employeeBox');
+    empid_controller.text = employeeBox.get('EmployeeId', defaultValue: '');
+  }
+  void openHive()async{
+    await Hive.openBox('employeeBox');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,13 +66,11 @@ class LoginScreen extends StatelessWidget {
             Container(
               height: myheight,
               width: mywidth,
-              decoration:  BoxDecoration(
+              decoration: BoxDecoration(
                   color: Colors.orange[300],
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(40),
-                  topLeft: Radius.circular(40)
-                )
-              ),
+                  borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(40),
+                      topLeft: Radius.circular(40))),
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
@@ -43,33 +79,15 @@ class LoginScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         LoginTextfieldMaterial(
-                          obscureText: false,
-                          hintText: 'exp@abc.com',
-                          labelText: "Email",
-                          icon: Icons.mail,
-                          controller: email_controller,
-                          validator: (Value) {
-                            if (Value == null || Value.isEmpty) {
-                              return "Please enter your mail id";
-                            }
-                            return null;
-                          },
-                        ),
+                            obscureText: false,
+                            hintText: '5 Digit Emp Id',
+                            labelText: "Emp id",
+                            icon: Icons.key,
+                            keyboardtype: TextInputType.number,
+                            controller: empid_controller,
+                            validator: _validateEmployeeId),
                         SizedBox(
                           height: myheight / 30,
-                        ),
-                        LoginTextfieldMaterial(
-                          obscureText: true,
-                          hintText: 'EmpId',
-                          labelText: "EmpId",
-                          icon: Icons.password,
-                          controller: passwrd_controller,
-                          validator: (Value) {
-                            if (Value == null || Value.isEmpty) {
-                              return "Please enter your Password";
-                            }
-                            return null;
-                          },
                         ),
                         SizedBox(
                           height: myheight / 30,
@@ -84,10 +102,15 @@ class LoginScreen extends StatelessWidget {
                             child: TextButton(
                                 onPressed: () {
                                   if (_formkey.currentState!.validate()) {
-                                    print(email_controller.text);
-
-                                  Navigator.push(context, MaterialPageRoute(builder: (context)=> LocationGetter()));
-                                }},
+                                    print(empid_controller.text);
+                                    _saveEmpId(empid_controller.text);
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                LocationGetter()));
+                                  }
+                                },
                                 child: const Text(
                                   "Sign-in",
                                   style: TextStyle(

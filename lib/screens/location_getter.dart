@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:one_clock/one_clock.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:myapp/services/locationgetter_service.dart';
+import 'package:hive/hive.dart';
 
 class LocationDetector extends StatefulWidget {
   const LocationDetector({super.key});
@@ -28,13 +29,22 @@ class _LocationGetterState extends State<LocationGetter> {
   DateTime dateTime = DateTime.now();
   String currentAddress = 'Getting Location..';
   final LocationgetterService locationgetterService = LocationgetterService();
+  late Box locationBox;
 
   @override
   void initState() {
     super.initState();
     _setNewDateTime(dateTime);
-    getLocation();
+    _initializeHive();
     print('InitState current address: $currentAddress');
+  }
+  Future<void> _initializeHive () async {
+    locationBox = await Hive.openBox('locationBox');
+    await getLocation();
+  }
+  void saveLocation (String userCurrentAddress) {
+    locationBox.put(currentAddress, userCurrentAddress);
+    print('Location Saved : $userCurrentAddress');
   }
 
   Future<void> getLocation() async {
@@ -129,8 +139,12 @@ class _LocationGetterState extends State<LocationGetter> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextButton(onPressed: () {}, child: Text("Confirm")),
-                TextButton(onPressed: () {}, child: Text("Edit")),
+                TextButton(onPressed: () {
+                  saveLocation(currentAddress);
+                }, child: Text("Confirm")),
+                TextButton(onPressed: () {
+                  Navigator.pop(context);
+                }, child: Text("Edit")),
               ],
             )
           ],
